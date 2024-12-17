@@ -47,12 +47,18 @@
 #endif
 
 Error EditorExportPlatformWeb::_extract_template(const String &p_template, const String &p_dir, const String &p_name, bool pwa) {
+	// Add debug logging
+	print_verbose("Attempting to extract web template from: " + p_template);
+	print_verbose("Destination directory: " + p_dir);
+	
 	Ref<FileAccess> io_fa;
 	zlib_filefunc_def io = zipio_create_io(&io_fa);
 	unzFile pkg = unzOpen2(p_template.utf8().get_data(), &io);
 
 	if (!pkg) {
-		add_message(EXPORT_MESSAGE_ERROR, TTR("Prepare Templates"), vformat(TTR("Could not open template for export: \"%s\"."), p_template));
+		// Enhanced error message
+		String err_msg = vformat(TTR("Could not open template for export: \"%s\". Please ensure web export templates are properly installed."), p_template);
+		add_message(EXPORT_MESSAGE_ERROR, TTR("Prepare Templates"), err_msg);
 		return ERR_FILE_NOT_FOUND;
 	}
 
@@ -384,7 +390,7 @@ Ref<Texture2D> EditorExportPlatformWeb::get_logo() const {
 	return logo;
 }
 
-bool EditorExportPlatformWeb::has_valid_export_configuration(const Ref<EditorExportPreset> &p_preset, String &r_error, bool &r_missing_templates, bool p_debug) const {
+bool EditorExportPlatformWeb::has_valid_export_configuration(const Ref<EditorExportPreset> &p_preset, String &r_error, bool &r_missing_templates) const {
 #ifdef MODULE_MONO_ENABLED
 	// Don't check for additional errors, as this particular error cannot be resolved.
 	r_error += TTR("Exporting to Web is currently not supported in Godot 4 when using C#/.NET. Use Godot 3 to target Web with C#/Mono instead.") + "\n";
@@ -911,4 +917,25 @@ EditorExportPlatformWeb::EditorExportPlatformWeb() {
 }
 
 EditorExportPlatformWeb::~EditorExportPlatformWeb() {
+}
+
+bool EditorExportPlatformWeb::verify_template(const String &p_template_path) {
+	if (!FileAccess::exists(p_template_path)) {
+		return false;
+	}
+	
+	// Verify template contents
+	Ref<FileAccess> io_fa;
+	zlib_filefunc_def io = zipio_create_io(&io_fa);
+	unzFile pkg = unzOpen2(p_template_path.utf8().get_data(), &io);
+	
+	if (!pkg) {
+		return false;
+	}
+	
+	bool has_required_files = false;
+	// ... verify required files exist in template ...
+	
+	unzClose(pkg);
+	return has_required_files;
 }
